@@ -71,4 +71,4 @@ npm run release:major   # 1.0.0 → 2.0.0, commit + tag, push
 
 The version commit message is `chore(release): X.Y.Z` (conventional-commit style). Use conventional commit messages (e.g. `fix:`, `feat:`, `docs:`) so the changelog stays accurate.
 
-After the tag is pushed, the **Release** workflow (`.github/workflows/release.yml`) runs and creates a [GitHub Release](https://github.com/LiquidLogicLabs/git-action-docker-act-compatibility/releases) for that tag, using `CHANGELOG.md` as the release notes. No extra steps are required for each release.
+After the tag is pushed, the **Release** workflow (`.github/workflows/release.yml`) runs and (1) creates a [GitHub Release](https://github.com/LiquidLogicLabs/git-action-docker-act-compatibility/releases) using [LiquidLogicLabs/git-action-release](https://github.com/LiquidLogicLabs/git-action-release) with `CHANGELOG.md` as the body, and (2) updates the major floating tag (e.g. `v1`) using [LiquidLogicLabs/git-action-tag-floating-version](https://github.com/LiquidLogicLabs/git-action-tag-floating-version) so `@v1` always resolves to the latest 1.x.y. No extra steps are required for each release.

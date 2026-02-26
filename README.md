@@ -30,6 +30,11 @@ When `set-env` is `true`, the action also sets:
 
 so downstream steps can use `env.DOCKER_BUILD_CONTEXT` and `env.DOCKER_FILE` without change.
 
+## Versioning
+
+- **`@v1`** — Floating tag: points to the latest `v1.x.y` release. Use for automatic minor/patch updates.
+- **`@v1.0.0`** — Exact tag: pins to a specific version. Use for maximum reproducibility.
+
 ## Permissions required
 
 No special permissions. Default `contents: read` is sufficient (the action only reads the repository filesystem to locate a Dockerfile).

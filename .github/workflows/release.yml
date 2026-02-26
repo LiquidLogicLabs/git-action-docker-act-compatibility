@@ -26,11 +26,12 @@ jobs:
         with:
           fetch-depth: 0
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: LiquidLogicLabs/git-action-release@v2
         with:
-          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
-          body_path: CHANGELOG.md
-          generate_release_notes: false
-          draft: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.event.inputs.tag || github.ref_name }}
+          body-file: CHANGELOG.md
+          draft: 'false'
+      - name: Update major floating tag
+        uses: LiquidLogicLabs/git-action-tag-floating-version@v1
+        with:
+          tag: ${{ github.event.inputs.tag || github.ref_name }}
