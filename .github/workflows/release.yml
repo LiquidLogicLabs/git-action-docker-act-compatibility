@@ -31,6 +31,7 @@ jobs:
           tag: ${{ github.event.inputs.tag || github.ref_name }}
           body-file: CHANGELOG.md
           draft: 'false'
+          allow-updates: 'true'
       - name: Update major floating tag
         uses: LiquidLogicLabs/git-action-tag-floating-version@v1
         with:
