@@ -1,0 +1,36 @@
+# Creates a GitHub Release for each version tag. Release notes come from CHANGELOG.md
+# (updated by the npm version lifecycle hook before the tag is pushed).
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v1.0.1). Leave empty to use the latest tag from the push event.'
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Create release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          body_path: CHANGELOG.md
+          generate_release_notes: false
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

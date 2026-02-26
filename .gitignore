@@ -15,6 +15,9 @@ Thumbs.db
 .act.secrets
 .act.secrets.local
 
+# Dependencies
+node_modules/
+
 # Local test artifacts (CI creates these in the runner)
 testdata/
 out.txt
