@@ -20,7 +20,7 @@ The **test** job in CI creates a fixture (`testdata/subdir/Dockerfile`), runs `s
 mkdir -p testdata/subdir
 touch testdata/subdir/Dockerfile
 INPUT_DOCKERFILE=Dockerfile INPUT_WORKSPACE=$PWD INPUT_SET_ENV=true INPUT_VERBOSE=true \
-  GITHUB_WORKSPACE=$PWD GITHUB_OUTPUT=$PWD/out.txt GITHUB_ENV=$PWD/env.txt \
+  GITHUB_WORKSPACE=$PWD OUTPUT_FILE=$PWD/out.txt GITHUB_ENV_FILE=$PWD/env.txt \
   bash scripts/resolve-workflow-dir.sh
 cat out.txt
 ```
