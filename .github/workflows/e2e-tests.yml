@@ -1,0 +1,48 @@
+# E2E: run the action as users do (uses: ./). Validate outputs and env.
+name: E2E tests
+
+on:
+  push:
+    branches: ['**']
+    paths-ignore:
+      - '**/*.md'
+  pull_request:
+    branches: ['**']
+    paths-ignore:
+      - '**/*.md'
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: E2E (action as used)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create fixture (Dockerfile in subdirectory)
+        run: |
+          mkdir -p testdata/subdir
+          touch testdata/subdir/Dockerfile
+      - name: Set workflow directory for act compatibility
+        id: workdir
+        uses: ./
+        with:
+          dockerfile: Dockerfile
+          set-env: true
+          verbose: true
+      - name: Verify action outputs
+        run: |
+          test "${{ steps.workdir.outputs.workflow-dir }}" = "./testdata/subdir"
+          test "${{ steps.workdir.outputs.docker-build-context }}" = "./testdata/subdir"
+          test "${{ steps.workdir.outputs.docker-file }}" = "./testdata/subdir/Dockerfile"
+      - name: Verify env set for downstream steps
+        run: |
+          test "$DOCKER_BUILD_CONTEXT" = "./testdata/subdir"
+          test "$DOCKER_FILE" = "./testdata/subdir/Dockerfile"

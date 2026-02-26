@@ -1,5 +1,6 @@
-# Creates a GitHub Release for each version tag. Release notes come from CHANGELOG.md
+# Creates a GitHub Release for each version tag. Release notes from CHANGELOG.md
 # (updated by the npm version lifecycle hook before the tag is pushed).
+# Per §9.3: re-run validation (lint/test) in the release workflow for defense in depth.
 name: Release
 
 on:
@@ -15,10 +16,19 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.inputs.tag || github.ref }}
+  cancel-in-progress: false
+
 jobs:
+  validate:
+    name: Lint and test
+    uses: ./.github/workflows/test.yml
+
   release:
     name: Create release
     runs-on: ubuntu-latest
+    needs: validate
     permissions:
       contents: write
     steps:

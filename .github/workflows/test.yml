@@ -1,0 +1,67 @@
+# Reusable workflow: lint + script/integration tests.
+# Called by ci.yml and release.yml. Also runnable via workflow_dispatch.
+name: Test
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: Test-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ShellCheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: ShellCheck
+        run: shellcheck scripts/*.sh
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create fixture (Dockerfile in subdirectory)
+        run: |
+          mkdir -p testdata/subdir
+          touch testdata/subdir/Dockerfile
+      - name: Run script at repo root (finds subdir)
+        id: resolve
+        env:
+          INPUT_DOCKERFILE: Dockerfile
+          INPUT_WORKSPACE: ${{ github.workspace }}
+          INPUT_SET_ENV: 'true'
+          INPUT_VERBOSE: 'true'
+          GITHUB_WORKSPACE: ${{ github.workspace }}
+          OUTPUT_FILE: ${{ github.workspace }}/out.txt
+          GITHUB_ENV_FILE: ${{ github.workspace }}/env.txt
+        run: bash scripts/resolve-workflow-dir.sh
+      - name: Verify outputs
+        run: |
+          out="${{ github.workspace }}/out.txt"
+          test -f "$out"
+          grep -q 'workflow-dir=' "$out"
+          grep -q 'docker-build-context=' "$out"
+          grep -q 'docker-file=' "$out"
+          grep -q 'testdata' "$out"
+      - name: Script fails when GITHUB_OUTPUT unset (runner contract)
+        run: |
+          # Simulate runner not providing GITHUB_OUTPUT/GITHUB_ENV (e.g. some Gitea/act).
+          # Script must exit 1 with a clear message, not unbound variable.
+          unset GITHUB_OUTPUT GITHUB_ENV OUTPUT_FILE GITHUB_ENV_FILE
+          set +e
+          out=$(bash scripts/resolve-workflow-dir.sh 2>&1)
+          code=$?
+          set -e
+          echo "$out"
+          test $code -eq 1
+          echo "$out" | grep -q "ERROR: GITHUB_OUTPUT is not set"
+          echo "Expected failure path OK"

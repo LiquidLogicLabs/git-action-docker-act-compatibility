@@ -60,7 +60,13 @@ log_info "Using workflow directory: ${WORKFLOW_DIR} (docker-file: ${DOCKER_FILE_
 # Step outputs (always); optional env vars when set-env is true.
 # When OUTPUT_FILE is set (e.g. in CI tests), write there so we don't rely on
 # overriding GITHUB_OUTPUT which the runner may not allow.
-OUTPUT_DEST="${OUTPUT_FILE:-${GITHUB_OUTPUT}}"
+# Gitea Actions / some act setups may not set GITHUB_OUTPUT for composite steps;
+# fail with a clear message instead of unbound variable.
+OUTPUT_DEST="${OUTPUT_FILE:-${GITHUB_OUTPUT:-}}"
+if [ -z "${OUTPUT_DEST}" ]; then
+  log_info "ERROR: GITHUB_OUTPUT is not set and OUTPUT_FILE was not provided. Cannot set step outputs."
+  exit 1
+fi
 {
   echo "workflow-dir=${WORKFLOW_DIR}"
   echo "docker-build-context=${WORKFLOW_DIR}"
@@ -68,7 +74,11 @@ OUTPUT_DEST="${OUTPUT_FILE:-${GITHUB_OUTPUT}}"
 } >> "${OUTPUT_DEST}"
 
 if [ "${SET_ENV}" = 'true' ] || [ "${SET_ENV}" = '1' ]; then
-  ENV_DEST="${GITHUB_ENV_FILE:-${GITHUB_ENV}}"
+  ENV_DEST="${GITHUB_ENV_FILE:-${GITHUB_ENV:-}}"
+  if [ -z "${ENV_DEST}" ]; then
+    log_info "ERROR: GITHUB_ENV is not set and GITHUB_ENV_FILE was not provided. Cannot set env."
+    exit 1
+  fi
   {
     echo "DOCKER_BUILD_CONTEXT=${WORKFLOW_DIR}"
     echo "DOCKER_FILE=${DOCKER_FILE_PATH}"

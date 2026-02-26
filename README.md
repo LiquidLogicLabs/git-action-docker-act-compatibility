@@ -64,6 +64,7 @@ For contributor and development setup (lint, test, local act runs), see [DEVELOP
 
 - **Dockerfile not found**: Ensure the `dockerfile` input matches the actual filename (e.g. `Dockerfile` or `Dockerfile.dev`). If the job does not run from the repo root, set `workspace` to the directory that should be treated as root (e.g. `${{ github.workspace }}`).
 - **No subdirectory detected under act**: When `pwd` equals `workspace`, the script searches from the current directory for the Dockerfile. Under act, the job often runs with `cwd` = repo root; leave `workspace` empty so it defaults to `GITHUB_WORKSPACE` and the search runs as expected.
+- **"GITHUB_OUTPUT is not set"**: Some runners (e.g. Gitea Actions or certain act setups) do not set `GITHUB_OUTPUT`/`GITHUB_ENV` for composite action steps. The action then exits with this message. Fix by configuring the runner to set these variables for steps, or use a runner/version that provides them (GitHub Actions does).
 - **Verbose output**: Set `verbose: true` (or `verbose: ${{ env.ACTIONS_STEP_DEBUG == 'true' }}`) to see resolved paths and search behavior in the logs.
 
 ## Security notes
