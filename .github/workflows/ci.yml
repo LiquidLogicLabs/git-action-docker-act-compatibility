@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+    paths-ignore:
+      - '**/*.md'
+  pull_request:
+    branches: ['**']
+    paths-ignore:
+      - '**/*.md'
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ShellCheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: ShellCheck
+        run: shellcheck scripts/*.sh
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create fixture (Dockerfile in subdirectory)
+        run: |
+          mkdir -p testdata/subdir
+          touch testdata/subdir/Dockerfile
+      - name: Run script at repo root (finds subdir)
+        id: resolve
+        env:
+          INPUT_DOCKERFILE: Dockerfile
+          INPUT_WORKSPACE: ${{ github.workspace }}
+          INPUT_SET_ENV: 'true'
+          INPUT_VERBOSE: 'true'
+          GITHUB_WORKSPACE: ${{ github.workspace }}
+          GITHUB_OUTPUT: ${{ github.workspace }}/out.txt
+          GITHUB_ENV: ${{ github.workspace }}/env.txt
+        run: bash scripts/resolve-workflow-dir.sh
+      - name: Verify outputs
+        run: |
+          out="${{ github.workspace }}/out.txt"
+          test -f "$out"
+          grep -q 'workflow-dir=./testdata/subdir' "$out"
+          grep -q 'docker-build-context=./testdata/subdir' "$out"
+          grep -q 'docker-file=./testdata/subdir/Dockerfile' "$out"

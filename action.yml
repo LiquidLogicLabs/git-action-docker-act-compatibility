@@ -1,0 +1,47 @@
+name: 'Docker act compatibility'
+description: 'Resolve Docker build context and Dockerfile path for workflows running at repo root (e.g. under act) when the Dockerfile lives in a subdirectory.'
+branding:
+  icon: 'package'
+  color: 'blue'
+
+inputs:
+  dockerfile:
+    description: 'Basename of the Dockerfile to locate (e.g. Dockerfile).'
+    required: false
+    default: 'Dockerfile'
+  workspace:
+    description: 'Directory to treat as repo root for search (when pwd equals this value).'
+    required: false
+    default: ''
+  set-env:
+    description: 'If true, write DOCKER_BUILD_CONTEXT and DOCKER_FILE to GITHUB_ENV for drop-in compatibility.'
+    required: false
+    default: 'true'
+  verbose:
+    description: 'Emit debug logs.'
+    required: false
+    default: 'false'
+
+outputs:
+  workflow-dir:
+    description: 'Resolved workflow directory: "." or the directory containing the found Dockerfile.'
+    value: ${{ steps.resolve.outputs.workflow-dir }}
+  docker-build-context:
+    description: 'Same as workflow-dir; use as Docker build context.'
+    value: ${{ steps.resolve.outputs.docker-build-context }}
+  docker-file:
+    description: 'Resolved path to the Dockerfile (e.g. ./subdir/Dockerfile or Dockerfile).'
+    value: ${{ steps.resolve.outputs.docker-file }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Resolve workflow directory
+      id: resolve
+      shell: bash
+      env:
+        INPUT_DOCKERFILE: ${{ inputs.dockerfile }}
+        INPUT_WORKSPACE: ${{ inputs.workspace }}
+        INPUT_SET_ENV: ${{ inputs.set-env }}
+        INPUT_VERBOSE: ${{ inputs.verbose }}
+      run: ${{ github.action_path }}/scripts/resolve-workflow-dir.sh

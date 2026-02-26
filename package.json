@@ -1,0 +1,18 @@
+{
+  "name": "git-action-docker-act-compatibility",
+  "version": "1.0.0",
+  "description": "Resolve Docker build context and Dockerfile path for act/subdirectory workflows",
+  "private": true,
+  "scripts": {
+    "preversion": "shellcheck scripts/*.sh",
+    "postversion": "git push --follow-tags origin HEAD",
+    "release:patch": "npm version patch -m \"chore(release): %s\"",
+    "release:minor": "npm version minor -m \"chore(release): %s\"",
+    "release:major": "npm version major -m \"chore(release): %s\"",
+    "test:act": "act --container-options \"--user $(id -u):$(id -g)\" --env-file .act.env --var-file .act.vars --secret-file .act.secrets -W .github/workflows/ci.yml",
+    "test:act:verbose": "act --container-options \"--user $(id -u):$(id -g)\" --env-file .act.env --var-file .act.vars --secret-file .act.secrets -W .github/workflows/ci.yml -v",
+    "test:act:ci:push": "act --container-options \"--user $(id -u):$(id -g)\" --env-file .act.env --var-file .act.vars --secret-file .act.secrets -W .github/workflows/ci.yml --eventpath .github/workflows/.act/event-push.json",
+    "test:act:ci:lint": "act --container-options \"--user $(id -u):$(id -g)\" --env-file .act.env --var-file .act.vars --secret-file .act.secrets -W .github/workflows/ci.yml -j lint",
+    "test:act:ci:test": "act --container-options \"--user $(id -u):$(id -g)\" --env-file .act.env --var-file .act.vars --secret-file .act.secrets -W .github/workflows/ci.yml -j test"
+  }
+}
