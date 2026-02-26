@@ -58,15 +58,19 @@ log_info "Using workflow directory: ${WORKFLOW_DIR} (docker-file: ${DOCKER_FILE_
 
 # --- Action outputs -----------------------------------------------------------
 # Step outputs (always); optional env vars when set-env is true.
+# When OUTPUT_FILE is set (e.g. in CI tests), write there so we don't rely on
+# overriding GITHUB_OUTPUT which the runner may not allow.
+OUTPUT_DEST="${OUTPUT_FILE:-${GITHUB_OUTPUT}}"
 {
   echo "workflow-dir=${WORKFLOW_DIR}"
   echo "docker-build-context=${WORKFLOW_DIR}"
   echo "docker-file=${DOCKER_FILE_PATH}"
-} >> "${GITHUB_OUTPUT}"
+} >> "${OUTPUT_DEST}"
 
 if [ "${SET_ENV}" = 'true' ] || [ "${SET_ENV}" = '1' ]; then
+  ENV_DEST="${GITHUB_ENV_FILE:-${GITHUB_ENV}}"
   {
     echo "DOCKER_BUILD_CONTEXT=${WORKFLOW_DIR}"
     echo "DOCKER_FILE=${DOCKER_FILE_PATH}"
-  } >> "${GITHUB_ENV}"
+  } >> "${ENV_DEST}"
 fi

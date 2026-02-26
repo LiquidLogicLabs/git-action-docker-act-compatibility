@@ -46,17 +46,14 @@ jobs:
           INPUT_SET_ENV: 'true'
           INPUT_VERBOSE: 'true'
           GITHUB_WORKSPACE: ${{ github.workspace }}
-          GITHUB_OUTPUT: ${{ github.workspace }}/out.txt
-          GITHUB_ENV: ${{ github.workspace }}/env.txt
+          OUTPUT_FILE: ${{ github.workspace }}/out.txt
+          GITHUB_ENV_FILE: ${{ github.workspace }}/env.txt
         run: bash scripts/resolve-workflow-dir.sh
       - name: Verify outputs
         run: |
           out="${{ github.workspace }}/out.txt"
-          if [ ! -f "$out" ]; then echo "::error::out.txt not found"; ls -la "${{ github.workspace }}"; exit 1; fi
-          echo "Contents of out.txt:"
-          cat "$out"
-          # Require the three action outputs (path format varies by runner)
-          grep -q 'workflow-dir=' "$out" || (echo "::error::missing workflow-dir"; exit 1)
-          grep -q 'docker-build-context=' "$out" || (echo "::error::missing docker-build-context"; exit 1)
-          grep -q 'docker-file=' "$out" || (echo "::error::missing docker-file"; exit 1)
-          grep -q 'testdata' "$out" || (echo "::error::output should reference testdata"; exit 1)
+          test -f "$out"
+          grep -q 'workflow-dir=' "$out"
+          grep -q 'docker-build-context=' "$out"
+          grep -q 'docker-file=' "$out"
+          grep -q 'testdata' "$out"
