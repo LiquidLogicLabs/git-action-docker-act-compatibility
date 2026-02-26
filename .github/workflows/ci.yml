@@ -53,7 +53,9 @@ jobs:
         run: |
           out="${{ github.workspace }}/out.txt"
           test -f "$out"
-          # accept ./testdata/subdir or testdata/subdir (find output varies by environment)
-          grep -qE 'workflow-dir=(\./)?testdata/subdir' "$out"
-          grep -qE 'docker-build-context=(\./)?testdata/subdir' "$out"
-          grep -qE 'docker-file=(\./)?testdata/subdir/Dockerfile' "$out"
+          # Require the three action outputs (path format varies by runner: ./path or path)
+          grep -q 'workflow-dir=' "$out"
+          grep -q 'docker-build-context=' "$out"
+          grep -q 'docker-file=' "$out"
+          grep -q 'testdata/subdir' "$out"
+          grep -q 'testdata/subdir/Dockerfile' "$out"
