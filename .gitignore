@@ -11,6 +11,8 @@ Thumbs.db
 .env
 .env.local
 *.local
+.act.env
+.act.secrets
 .act.secrets.local
 
 # Local test artifacts (CI creates these in the runner)
