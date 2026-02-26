@@ -1,6 +1,6 @@
 {
   "name": "git-action-docker-act-compatibility",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Resolve Docker build context and Dockerfile path for act/subdirectory workflows",
   "private": true,
   "scripts": {
