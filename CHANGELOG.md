@@ -1,3 +1,13 @@
+## [1.0.2](https://github.com/LiquidLogicLabs/git-action-docker-act-compatibility/compare/v1.0.1...v1.0.2) (2026-03-02)
+
+
+### Bug Fixes
+
+* **ci:** runner-contract step pass on GitHub and act ([35898e9](https://github.com/LiquidLogicLabs/git-action-docker-act-compatibility/commit/35898e9c959366da668c1ed24d4854c51b518c4e))
+* support act, Gitea, and hosted runners via legacy set-output/set-env ([9c6ec99](https://github.com/LiquidLogicLabs/git-action-docker-act-compatibility/commit/9c6ec99b9c668b730c97c823ce3d3540eb5748f5))
+
+
+
 ## [1.0.1](https://github.com/LiquidLogicLabs/git-action-docker-act-compatibility/compare/v1.0.0...v1.0.1) (2026-02-26)
 
 
