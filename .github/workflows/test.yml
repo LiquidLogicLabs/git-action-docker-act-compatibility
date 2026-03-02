@@ -52,19 +52,30 @@ jobs:
           grep -q 'docker-build-context=' "$out"
           grep -q 'docker-file=' "$out"
           grep -q 'testdata' "$out"
-      - name: Script fails when GITHUB_OUTPUT unset (runner contract)
+      - name: Script succeeds without GITHUB_OUTPUT (act/Gitea compatibility)
         run: |
-          # When GITHUB_OUTPUT is unset, script must exit 1 with a clear message (e.g. Gitea/act).
-          # When the runner sets GITHUB_OUTPUT (e.g. GitHub Actions), script may exit 0; both are OK.
+          # When GITHUB_OUTPUT is unset (act, some Gitea composite steps), script must still
+          # exit 0 and emit legacy ::set-output:: so runners can capture from stdout.
           unset GITHUB_OUTPUT GITHUB_ENV OUTPUT_FILE GITHUB_ENV_FILE
-          set +e
-          out=$(INPUT_VERBOSE=true bash scripts/resolve-workflow-dir.sh 2>&1)
-          code=$?
-          set -e
+          out=$(INPUT_VERBOSE=true GITHUB_WORKSPACE=${{ github.workspace }} bash scripts/resolve-workflow-dir.sh 2>&1)
           echo "$out"
-          if [ "$code" -eq 1 ]; then
-            echo "$out" | grep -q "ERROR: GITHUB_OUTPUT is not set" || (echo "Expected error message not found"; exit 1)
-            echo "Runner-contract: script correctly failed with clear message"
-          else
-            echo "Runner set GITHUB_OUTPUT; script succeeded (expected on GitHub Actions)"
-          fi
+          # Legacy outputs must be present
+          echo "$out" | grep -q '::set-output name=workflow-dir::' || (echo "Missing legacy workflow-dir output"; exit 1)
+          echo "$out" | grep -q '::set-output name=docker-build-context::' || (echo "Missing legacy docker-build-context output"; exit 1)
+          echo "$out" | grep -q '::set-output name=docker-file::' || (echo "Missing legacy docker-file output"; exit 1)
+          # Legacy output values must match resolution (same as file-override test)
+          echo "$out" | grep -q '::set-output name=workflow-dir::./testdata/subdir' || (echo "Wrong workflow-dir value"; exit 1)
+          echo "$out" | grep -q '::set-output name=docker-file::./testdata/subdir/Dockerfile' || (echo "Wrong docker-file value"; exit 1)
+          # set-env defaults to true: legacy ::set-env:: must be present
+          echo "$out" | grep -q '::set-env name=DOCKER_BUILD_CONTEXT::' || (echo "Missing legacy set-env (set-env default true)"; exit 1)
+          echo "$out" | grep -q '::set-env name=DOCKER_FILE::' || (echo "Missing legacy DOCKER_FILE env"; exit 1)
+          # Must not fail with ERROR when using legacy fallback
+          if echo "$out" | grep -q 'ERROR:'; then echo "Script must not error when using legacy fallback"; exit 1; fi
+          echo "Legacy outputs and env emitted with correct values (act/Gitea/hosted runner compatible)"
+      - name: Script with set-env false does not emit set-env
+        run: |
+          unset GITHUB_OUTPUT GITHUB_ENV OUTPUT_FILE GITHUB_ENV_FILE
+          out=$(INPUT_SET_ENV=false INPUT_VERBOSE=true GITHUB_WORKSPACE=${{ github.workspace }} bash scripts/resolve-workflow-dir.sh 2>&1)
+          echo "$out" | grep -q '::set-output name=workflow-dir::' || (echo "Missing set-output"; exit 1)
+          if echo "$out" | grep -q '::set-env'; then echo "Must not emit set-env when set-env=false"; exit 1; fi
+          echo "set-env=false: no ::set-env:: emitted (OK)"

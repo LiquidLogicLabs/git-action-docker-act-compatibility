@@ -7,7 +7,8 @@ set -euo pipefail
 
 # --- Inputs (from action.yml via env) -----------------------------------------
 DOCKER_FILE="${INPUT_DOCKERFILE:-Dockerfile}"
-WORKSPACE="${INPUT_WORKSPACE:-$GITHUB_WORKSPACE}"   # Dir we treat as repo root
+# Dir we treat as repo root (fallback to pwd for minimal envs e.g. act composite steps).
+WORKSPACE="${INPUT_WORKSPACE:-${GITHUB_WORKSPACE:-$(pwd)}}"
 SET_ENV="${INPUT_SET_ENV:-true}"                    # Write to GITHUB_ENV?
 VERBOSE="${INPUT_VERBOSE:-false}"
 
@@ -57,30 +58,53 @@ fi
 log_info "Using workflow directory: ${WORKFLOW_DIR} (docker-file: ${DOCKER_FILE_PATH})"
 
 # --- Action outputs -----------------------------------------------------------
-# Step outputs (always); optional env vars when set-env is true.
-# When OUTPUT_FILE is set (e.g. in CI tests), write there so we don't rely on
-# overriding GITHUB_OUTPUT which the runner may not allow.
-# Gitea Actions / some act setups may not set GITHUB_OUTPUT for composite steps;
-# fail with a clear message instead of unbound variable.
+# Support GitHub Actions, Gitea Actions, act (local and hosted): write to
+# GITHUB_OUTPUT/GITHUB_ENV when set, and always emit legacy ::set-output::/
+# ::set-env:: to stdout so runners that don't set those (e.g. act composite steps)
+# can still capture outputs from stdout.
+# Percent-encode for legacy format: % -> %25, newline -> %0A, \r -> %0D.
+encode_legacy() {
+  local v="$1"
+  v="${v//%/%25}"
+  v="${v//$'\n'/%0A}"
+  v="${v//$'\r'/%0D}"
+  printf '%s' "$v"
+}
+
+emit_outputs_legacy() {
+  echo "::set-output name=workflow-dir::$(encode_legacy "${WORKFLOW_DIR}")"
+  echo "::set-output name=docker-build-context::$(encode_legacy "${WORKFLOW_DIR}")"
+  echo "::set-output name=docker-file::$(encode_legacy "${DOCKER_FILE_PATH}")"
+}
+
+emit_env_legacy() {
+  echo "::set-env name=DOCKER_BUILD_CONTEXT::$(encode_legacy "${WORKFLOW_DIR}")"
+  echo "::set-env name=DOCKER_FILE::$(encode_legacy "${DOCKER_FILE_PATH}")"
+}
+
+# Legacy format to stdout first so act/Gitea/other runners can parse it.
+emit_outputs_legacy
+
 OUTPUT_DEST="${OUTPUT_FILE:-${GITHUB_OUTPUT:-}}"
-if [ -z "${OUTPUT_DEST}" ]; then
-  log_info "ERROR: GITHUB_OUTPUT is not set and OUTPUT_FILE was not provided. Cannot set step outputs."
-  exit 1
+if [ -n "${OUTPUT_DEST}" ]; then
+  {
+    echo "workflow-dir=${WORKFLOW_DIR}"
+    echo "docker-build-context=${WORKFLOW_DIR}"
+    echo "docker-file=${DOCKER_FILE_PATH}"
+  } >> "${OUTPUT_DEST}"
+else
+  log_verbose "GITHUB_OUTPUT not set; outputs emitted via legacy ::set-output:: (act/Gitea compatibility)"
 fi
-{
-  echo "workflow-dir=${WORKFLOW_DIR}"
-  echo "docker-build-context=${WORKFLOW_DIR}"
-  echo "docker-file=${DOCKER_FILE_PATH}"
-} >> "${OUTPUT_DEST}"
 
 if [ "${SET_ENV}" = 'true' ] || [ "${SET_ENV}" = '1' ]; then
+  emit_env_legacy
   ENV_DEST="${GITHUB_ENV_FILE:-${GITHUB_ENV:-}}"
-  if [ -z "${ENV_DEST}" ]; then
-    log_info "ERROR: GITHUB_ENV is not set and GITHUB_ENV_FILE was not provided. Cannot set env."
-    exit 1
+  if [ -n "${ENV_DEST}" ]; then
+    {
+      echo "DOCKER_BUILD_CONTEXT=${WORKFLOW_DIR}"
+      echo "DOCKER_FILE=${DOCKER_FILE_PATH}"
+    } >> "${ENV_DEST}"
+  else
+    log_verbose "GITHUB_ENV not set; env emitted via legacy ::set-env:: (act/Gitea compatibility)"
   fi
-  {
-    echo "DOCKER_BUILD_CONTEXT=${WORKFLOW_DIR}"
-    echo "DOCKER_FILE=${DOCKER_FILE_PATH}"
-  } >> "${ENV_DEST}"
 fi

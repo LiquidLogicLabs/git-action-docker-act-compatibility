@@ -17,7 +17,7 @@ CI runs this in the **lint** job of the reusable **Test** workflow (`.github/wor
 The reusable **Test** workflow (`test.yml`) runs **lint** and **test** jobs. **CI** (`ci.yml`) and **Release** (`release.yml`) call it for validation. The **test** job:
 
 1. **Script with file overrides** — Creates a fixture (`testdata/subdir/Dockerfile`), runs `scripts/resolve-workflow-dir.sh` with `OUTPUT_FILE` and `GITHUB_ENV_FILE` set (so the script does not rely on runner-provided `GITHUB_OUTPUT`/`GITHUB_ENV`), and asserts the output contents.
-2. **Runner contract** — Runs the script with `GITHUB_OUTPUT` and `GITHUB_ENV` unset to assert the script exits 1 with a clear error message (catches environments like some Gitea/act setups that do not set these for composite steps).
+2. **Multi-runner compatibility** — Runs the script with `GITHUB_OUTPUT` and `GITHUB_ENV` unset to assert the script exits 0 and emits legacy `::set-output::` and `::set-env::` to stdout so act, Gitea, and other runners that do not set those for composite steps can still capture outputs.
 
 To run the script locally with the same layout:
 
@@ -30,21 +30,23 @@ INPUT_DOCKERFILE=Dockerfile INPUT_WORKSPACE=$PWD INPUT_SET_ENV=true INPUT_VERBOS
 cat out.txt
 ```
 
-To assert the “runner didn’t set GITHUB_OUTPUT” path locally:
+To assert the “runner didn’t set GITHUB_OUTPUT” path locally (act/Gitea compatibility):
 
 ```bash
 mkdir -p testdata/subdir
 touch testdata/subdir/Dockerfile
 unset GITHUB_OUTPUT GITHUB_ENV OUTPUT_FILE GITHUB_ENV_FILE
 bash scripts/resolve-workflow-dir.sh
-# Expect exit 1 and "ERROR: GITHUB_OUTPUT is not set"
+# Expect exit 0 and stdout containing ::set-output name=workflow-dir:: and ::set-output name=docker-file::
 ```
 
 (`testdata/`, `out.txt`, and `env.txt` are in `.gitignore`.)
 
 ## E2E
 
-The **E2E tests** workflow (`.github/workflows/e2e-tests.yml`) runs the action as users do: `uses: ./` with a fixture, then verifies step outputs and env vars. This validates the action under the real runner (GitHub Actions sets `GITHUB_OUTPUT`/`GITHUB_ENV`). E2E does not run on Gitea/act; if the action is used there, ensure the runner sets those variables or pass override paths when supported.
+The **E2E tests** workflow (`.github/workflows/e2e-tests.yml`) runs the action as users do: `uses: ./` with a fixture, then verifies step outputs and env vars. It is triggered on push/PR (with paths-ignore for `**/*.md`) and on `workflow_dispatch`. This validates the action under the GitHub Actions runner (which sets `GITHUB_OUTPUT`/`GITHUB_ENV`). The script also emits legacy `::set-output::`/`::set-env::` to stdout so it works under act (local and hosted) and Gitea runners that may not set those for composite steps.
+
+To validate that the action works under **act** (legacy stdout path), run the same E2E workflow locally with act: `npm run test:act:ci:e2e`. That runs the `e2e` job of `e2e-tests.yml` inside act; if it passes, the composite step outputs are correctly captured from the legacy format.
 
 ## Local workflow testing (act)
 
