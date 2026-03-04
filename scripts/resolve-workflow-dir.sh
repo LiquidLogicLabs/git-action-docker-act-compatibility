@@ -17,9 +17,9 @@ log_info() {
   echo "$@"
 }
 
-# Shown only when verbose=true (diagnostic detail).
+# Shown only when verbose=true (diagnostic detail). Use if so failed [ ] does not trigger set -e.
 log_verbose() {
-  [ "${VERBOSE}" = 'true' ] || [ "${VERBOSE}" = '1' ] && echo "$@"
+  if [ "${VERBOSE}" = 'true' ] || [ "${VERBOSE}" = '1' ]; then echo "$@"; fi
 }
 
 # --- Resolve workflow directory and Dockerfile path --------------------------
@@ -59,9 +59,9 @@ log_info "Using workflow directory: ${WORKFLOW_DIR} (docker-file: ${DOCKER_FILE_
 
 # --- Action outputs -----------------------------------------------------------
 # Support GitHub Actions, Gitea Actions, act (local and hosted): write to
-# GITHUB_OUTPUT/GITHUB_ENV when set, and always emit legacy ::set-output::/
-# ::set-env:: to stdout so runners that don't set those (e.g. act composite steps)
-# can still capture outputs from stdout.
+# GITHUB_OUTPUT/GITHUB_ENV when set; only emit legacy ::set-output::/::set-env::
+# to stdout when those are unset (so act/Gitea can capture). When the runner
+# provides output/env files, do not emit legacy — GitHub rejects ::set-env in logs.
 # Percent-encode for legacy format: % -> %25, newline -> %0A, \r -> %0D.
 encode_legacy() {
   local v="$1"
@@ -82,10 +82,9 @@ emit_env_legacy() {
   echo "::set-env name=DOCKER_FILE::$(encode_legacy "${DOCKER_FILE_PATH}")"
 }
 
-# Legacy format to stdout first so act/Gitea/other runners can parse it.
-emit_outputs_legacy
-
 OUTPUT_DEST="${OUTPUT_FILE:-${GITHUB_OUTPUT:-}}"
+ENV_DEST="${GITHUB_ENV_FILE:-${GITHUB_ENV:-}}"
+
 if [ -n "${OUTPUT_DEST}" ]; then
   {
     echo "workflow-dir=${WORKFLOW_DIR}"
@@ -93,18 +92,18 @@ if [ -n "${OUTPUT_DEST}" ]; then
     echo "docker-file=${DOCKER_FILE_PATH}"
   } >> "${OUTPUT_DEST}"
 else
+  emit_outputs_legacy
   log_verbose "GITHUB_OUTPUT not set; outputs emitted via legacy ::set-output:: (act/Gitea compatibility)"
 fi
 
 if [ "${SET_ENV}" = 'true' ] || [ "${SET_ENV}" = '1' ]; then
-  emit_env_legacy
-  ENV_DEST="${GITHUB_ENV_FILE:-${GITHUB_ENV:-}}"
   if [ -n "${ENV_DEST}" ]; then
     {
       echo "DOCKER_BUILD_CONTEXT=${WORKFLOW_DIR}"
       echo "DOCKER_FILE=${DOCKER_FILE_PATH}"
     } >> "${ENV_DEST}"
   else
+    emit_env_legacy
     log_verbose "GITHUB_ENV not set; env emitted via legacy ::set-env:: (act/Gitea compatibility)"
   fi
 fi
