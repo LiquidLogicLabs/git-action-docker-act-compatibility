@@ -1,5 +1,6 @@
 name: 'Docker act compatibility'
 description: 'Resolve Docker build context and Dockerfile path for workflows running at repo root (e.g. under act) when the Dockerfile lives in a subdirectory.'
+author: 'LiquidLogicLabs'
 branding:
   icon: 'package'
   color: 'blue'
