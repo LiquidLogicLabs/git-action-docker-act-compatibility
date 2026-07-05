@@ -22,3 +22,5 @@ node_modules/
 testdata/
 out.txt
 env.txt
+log.txt
+trace.log
