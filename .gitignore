@@ -24,3 +24,4 @@ out.txt
 env.txt
 log.txt
 trace.log
+.devcontainer-secrets
