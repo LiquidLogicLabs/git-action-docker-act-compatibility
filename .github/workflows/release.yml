@@ -42,7 +42,10 @@ jobs:
           body-file: CHANGELOG.md
           draft: 'false'
           allow-updates: 'true'
-      - name: Update major floating tag
-        uses: LiquidLogicLabs/git-action-tag-floating-version@v1
+      - name: Update floating version tags
+        # Was pinned to @v1, which has no update-minor input at all and only ever moved
+        # the major tag. v2 adds it; without the bump the minor tag can never be updated.
+        uses: LiquidLogicLabs/git-action-tag-floating-version@v2
         with:
           tag: ${{ github.event.inputs.tag || github.ref_name }}
+          update-minor: true
