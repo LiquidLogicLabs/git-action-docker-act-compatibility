@@ -38,10 +38,19 @@ jobs:
           set-env: true
           verbose: true
       - name: Verify action outputs
+        # These values come from `dirname` of a `find` over the CHECKED-OUT TREE, so on a
+        # fork pull request the contributor controls them. Expanded directly into `run:`
+        # they are pasted into the script before bash sees it, and a directory named with
+        # backticks executes -- verified. Passing them through env: and quoting means bash
+        # receives them as data.
+        env:
+          Z_WORKFLOW_DIR: ${{ steps.workdir.outputs.workflow-dir }}
+          Z_BUILD_CONTEXT: ${{ steps.workdir.outputs.docker-build-context }}
+          Z_DOCKER_FILE: ${{ steps.workdir.outputs.docker-file }}
         run: |
-          test "${{ steps.workdir.outputs.workflow-dir }}" = "./testdata/subdir"
-          test "${{ steps.workdir.outputs.docker-build-context }}" = "./testdata/subdir"
-          test "${{ steps.workdir.outputs.docker-file }}" = "./testdata/subdir/Dockerfile"
+          test "$Z_WORKFLOW_DIR" = "./testdata/subdir"
+          test "$Z_BUILD_CONTEXT" = "./testdata/subdir"
+          test "$Z_DOCKER_FILE" = "./testdata/subdir/Dockerfile"
       - name: Verify env set for downstream steps
         run: |
           test "$DOCKER_BUILD_CONTEXT" = "./testdata/subdir"

@@ -82,6 +82,31 @@ emit_env_legacy() {
   echo "::set-env name=DOCKER_FILE::$(encode_legacy "${DOCKER_FILE_PATH}")"
 }
 
+# Refuse a value that could forge an additional assignment.
+#
+# WORKFLOW_DIR is derived from a directory name in the CHECKED-OUT TREE, which on a fork
+# pull request the contributor controls. `name=$VALUE` in $GITHUB_OUTPUT or $GITHUB_ENV
+# means a newline in the value starts a second assignment and can set any other output or
+# variable.
+#
+# Rejecting a newline rather than switching to the heredoc form is deliberate: this action
+# exists for act/Gitea compatibility, the heredoc form's support there is unverified, and no
+# legitimate workflow directory contains a newline or a carriage return.
+assert_single_line() {
+  # Bash ANSI-C quoting. Do NOT write this as *"$(printf '\n')"* -- command substitution
+  # strips trailing newlines, so that pattern collapses to *""* and matches every value,
+  # rejecting valid input while looking like a guard.
+  case "$1" in
+    *$'\n'*|*$'\r'*)
+      echo "Refusing $2: the resolved path contains a newline or carriage return, which would forge an additional assignment" >&2
+      exit 1
+      ;;
+  esac
+}
+
+assert_single_line "${WORKFLOW_DIR}" 'workflow-dir'
+assert_single_line "${DOCKER_FILE_PATH}" 'docker-file'
+
 OUTPUT_DEST="${OUTPUT_FILE:-${GITHUB_OUTPUT:-}}"
 ENV_DEST="${GITHUB_ENV_FILE:-${GITHUB_ENV:-}}"
 

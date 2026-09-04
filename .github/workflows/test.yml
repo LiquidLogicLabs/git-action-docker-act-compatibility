@@ -80,3 +80,53 @@ jobs:
           echo "$out" | grep -q '::set-output name=workflow-dir::' || (echo "Missing set-output"; exit 1)
           if echo "$out" | grep -q '::set-env'; then echo "Must not emit set-env when set-env=false"; exit 1; fi
           echo "set-env=false: no ::set-env:: emitted (OK)"
+
+      - name: Test - a newline in the directory name is refused
+        run: |
+          # WORKFLOW_DIR is dirname of a `find` over the checked-out tree, which a fork PR
+          # controls. A newline in it would start a second assignment in $GITHUB_OUTPUT and
+          # could set any other output. The script refuses it rather than changing the
+          # output format, because this action exists for act/Gitea compatibility and the
+          # heredoc form's support there is unverified.
+          work=$(mktemp -d)
+          mkdir -p "$work/$(printf 'ev\nil-injected=yes')"
+          touch "$work/$(printf 'ev\nil-injected=yes')/Dockerfile"
+          out=$(mktemp)
+          script="$PWD/scripts/resolve-workflow-dir.sh"
+          # The script runs `find .` from the CURRENT directory, not from $WORKSPACE, so the
+          # test must cd into the fixture -- otherwise it finds this repo's own Dockerfile
+          # and the planted one is never reached.
+          set +e
+          ( cd "$work" && INPUT_DOCKERFILE=Dockerfile INPUT_WORKSPACE="$work" GITHUB_WORKSPACE="$work" \
+              OUTPUT_FILE="$out" GITHUB_ENV_FILE=/dev/null bash "$script" >/dev/null 2>&1 )
+          rc=$?
+          set -e
+          test "$rc" -ne 0 || { echo "::error::a newline in the directory name was accepted"; exit 1; }
+          test ! -s "$out" || { echo "::error::output was written despite the refusal"; cat "$out"; exit 1; }
+          echo "✓ newline in directory name refused, nothing written"
+
+      - name: Test - an ordinary directory still produces name=value output
+        run: |
+          # The guard must not reject valid input. An earlier cut of it used
+          # *"$(printf '\n')"* as the case pattern; command substitution strips trailing
+          # newlines, so that collapsed to *""* and matched everything.
+          work=$(mktemp -d); mkdir -p "$work/sub"; touch "$work/sub/Dockerfile"
+          out=$(mktemp)
+          script="$PWD/scripts/resolve-workflow-dir.sh"
+          ( cd "$work" && INPUT_DOCKERFILE=Dockerfile INPUT_WORKSPACE="$work" GITHUB_WORKSPACE="$work" \
+              OUTPUT_FILE="$out" GITHUB_ENV_FILE=/dev/null bash "$script" >/dev/null 2>&1 )
+          grep -qx 'workflow-dir=./sub' "$out" \
+            || { echo "::error::ordinary directory did not produce the expected output"; cat "$out"; exit 1; }
+          echo "✓ ordinary directory unaffected"
+
+      - name: Test - outputs are consumed as data, not as script
+        env:
+          Z_VALUE: './x`id > /tmp/should-not-exist`y'
+        run: |
+          # The e2e workflow passes step outputs through env: and quotes them. Confirm that
+          # a value containing a command substitution is compared, not executed.
+          rm -f /tmp/should-not-exist
+          test "$Z_VALUE" = './nope' || true
+          test ! -e /tmp/should-not-exist \
+            || { echo "::error::the value was executed rather than compared"; exit 1; }
+          echo "✓ value treated as data"
