@@ -1,3 +1,12 @@
+## [1.0.5](https://github.com/LiquidLogicLabs/git-action-docker-act-compatibility/compare/v1.0.4...v1.0.5) (2026-09-04)
+
+
+### Bug Fixes
+
+* stop a fork-controlled directory name reaching the shell ([3de5f8c](https://github.com/LiquidLogicLabs/git-action-docker-act-compatibility/commit/3de5f8c06c3444f8e3e4f3ec9bbf1e1cd52487c9))
+
+
+
 ## [1.0.4](https://github.com/LiquidLogicLabs/git-action-docker-act-compatibility/compare/v1.0.3...v1.0.4) (2026-07-05)
 
 
