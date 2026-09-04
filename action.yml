@@ -45,4 +45,10 @@ runs:
         INPUT_WORKSPACE: ${{ inputs.workspace }}
         INPUT_SET_ENV: ${{ inputs.set-env }}
         INPUT_VERBOSE: ${{ inputs.verbose }}
-      run: ${{ github.action_path }}/scripts/resolve-workflow-dir.sh
+        Z_ACTION_PATH: ${{ github.action_path }}
+      # github.action_path goes through env: rather than being expanded into the run:
+      # block. Expanded inline it is substituted as literal text before bash parses the
+      # line, so any shell metacharacter (a space in the checkout path is enough) changes
+      # what runs. zizmor flags this one only under --persona=auditor, but the rule is the
+      # same: an expression never reaches a run: block directly.
+      run: bash "$Z_ACTION_PATH/scripts/resolve-workflow-dir.sh"

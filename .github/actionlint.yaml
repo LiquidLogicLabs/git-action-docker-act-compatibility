@@ -1,0 +1,16 @@
+# actionlint configuration.
+#
+# Scoped ignores only, each with its reason. This file exists because actionlint is now
+# run across every workflow (it was pinned to ci.yml alone, which meant release.yml,
+# test.yml and e2e-tests.yml -- where nearly all the shell lives -- were never checked).
+paths:
+  .github/workflows/test.yml:
+    ignore:
+      # These are not workflow commands being issued; they are grep patterns asserting
+      # that the script still EMITS the legacy ::set-output::/::set-env:: forms when
+      # GITHUB_OUTPUT is unset. That fallback is the entire purpose of this action --
+      # act and some Gitea composite steps do not provide GITHUB_OUTPUT -- so deleting
+      # the assertions to satisfy the linter would delete the behaviour under test.
+      # actionlint matches the deprecated-commands rule on the literal text and cannot
+      # tell a quoted grep pattern from a real command.
+      - 'workflow command "set-(env|output)" was deprecated'

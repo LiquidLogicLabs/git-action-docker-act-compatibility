@@ -18,7 +18,10 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          # No step in this job pushes; the credential is not needed.
+          persist-credentials: false
       - name: Install ShellCheck
         run: sudo apt-get update && sudo apt-get install -y shellcheck
       - name: ShellCheck
@@ -28,7 +31,10 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          # No step in this job pushes; the credential is not needed.
+          persist-credentials: false
       - name: Create fixture (Dockerfile in subdirectory)
         run: |
           mkdir -p testdata/subdir
@@ -45,21 +51,25 @@ jobs:
           GITHUB_ENV_FILE: ${{ github.workspace }}/env.txt
         run: bash scripts/resolve-workflow-dir.sh
       - name: Verify outputs
+        env:
+          Z_WORKSPACE: ${{ github.workspace }}
         run: |
-          out="${{ github.workspace }}/out.txt"
+          out="${Z_WORKSPACE}/out.txt"
           test -f "$out"
           grep -q 'workflow-dir=' "$out"
           grep -q 'docker-build-context=' "$out"
           grep -q 'docker-file=' "$out"
           grep -q 'testdata' "$out"
       - name: Script succeeds without GITHUB_OUTPUT (act/Gitea compatibility)
+        env:
+          Z_WORKSPACE: ${{ github.workspace }}
         run: |
           # When GITHUB_OUTPUT is unset (act, some Gitea composite steps), script must still
           # exit 0 and emit legacy ::set-output:: so runners can capture from stdout.
           # Do not echo $out: it contains ::set-output/::set-env which GitHub runner would
           # parse and reject (set-env is disabled), failing the step.
           unset GITHUB_OUTPUT GITHUB_ENV OUTPUT_FILE GITHUB_ENV_FILE
-          out=$(INPUT_VERBOSE=true GITHUB_WORKSPACE=${{ github.workspace }} bash scripts/resolve-workflow-dir.sh 2>&1)
+          out=$(INPUT_VERBOSE=true GITHUB_WORKSPACE="$Z_WORKSPACE" bash scripts/resolve-workflow-dir.sh 2>&1)
           # Legacy outputs must be present
           echo "$out" | grep -q '::set-output name=workflow-dir::' || (echo "Missing legacy workflow-dir output"; exit 1)
           echo "$out" | grep -q '::set-output name=docker-build-context::' || (echo "Missing legacy docker-build-context output"; exit 1)
@@ -74,9 +84,11 @@ jobs:
           if echo "$out" | grep -q 'ERROR:'; then echo "Script must not error when using legacy fallback"; exit 1; fi
           echo "Legacy outputs and env emitted with correct values (act/Gitea/hosted runner compatible)"
       - name: Script with set-env false does not emit set-env
+        env:
+          Z_WORKSPACE: ${{ github.workspace }}
         run: |
           unset GITHUB_OUTPUT GITHUB_ENV OUTPUT_FILE GITHUB_ENV_FILE
-          out=$(INPUT_SET_ENV=false INPUT_VERBOSE=true GITHUB_WORKSPACE=${{ github.workspace }} bash scripts/resolve-workflow-dir.sh 2>&1)
+          out=$(INPUT_SET_ENV=false INPUT_VERBOSE=true GITHUB_WORKSPACE="$Z_WORKSPACE" bash scripts/resolve-workflow-dir.sh 2>&1)
           echo "$out" | grep -q '::set-output name=workflow-dir::' || (echo "Missing set-output"; exit 1)
           if echo "$out" | grep -q '::set-env'; then echo "Must not emit set-env when set-env=false"; exit 1; fi
           echo "set-env=false: no ::set-env:: emitted (OK)"

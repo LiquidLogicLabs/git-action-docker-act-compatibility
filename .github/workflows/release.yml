@@ -23,7 +23,12 @@ concurrency:
 jobs:
   validate:
     name: Lint and test
-    uses: ./.github/workflows/test.yml
+    # `$/` is GitHub syntax from July 2026 and act 0.2.89 rejects it outright ("must start
+    # with './' if it's a local workflow"), which would break every `npm run test:act:*`
+    # script here. The marker must sit ON the uses: line -- a comment above a JOB-level
+    # uses: is not honoured, unlike the step-level case.
+    uses: ./.github/workflows/test.yml  # zizmor: ignore[self-repository]
+    # No `secrets:` block: test.yml reads no secret at all.
 
   release:
     name: Create release
@@ -32,10 +37,22 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout code
+        # zizmor: ignore[artipacked] — the floating-tags step later in this job
+        # force-pushes vX/vX.Y using these persisted credentials; the action has no
+        # token input at all, so disabling them breaks the release, and only at
+        # release time.
+        #
+        # The marker has to sit INSIDE the step mapping. Above a bare `- uses:` it is
+        # outside the step's node and zizmor does not attribute it -- which is why this
+        # step gained an explicit name.
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
       - name: Create GitHub Release
+        # zizmor: ignore[unpinned-uses] — first-party action; no Renovate or
+        # Dependabot exists in these repos, so a SHA pin would freeze it and stop
+        # security fixes reaching us through @v2.
         uses: LiquidLogicLabs/git-action-release@v2
         with:
           tag: ${{ github.event.inputs.tag || github.ref_name }}
@@ -45,6 +62,9 @@ jobs:
       - name: Update floating version tags
         # Was pinned to @v1, which has no update-minor input at all and only ever moved
         # the major tag. v2 adds it; without the bump the minor tag can never be updated.
+        # zizmor: ignore[unpinned-uses] — first-party action; no Renovate or
+        # Dependabot exists in these repos, so a SHA pin would freeze it and stop
+        # security fixes reaching us through @v2.
         uses: LiquidLogicLabs/git-action-tag-floating-version@v2
         with:
           tag: ${{ github.event.inputs.tag || github.ref_name }}
