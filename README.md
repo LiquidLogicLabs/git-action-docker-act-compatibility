@@ -1,4 +1,4 @@
-# git-action-docker-act-compatibility
+# Git Docker Act Compatibility
 
 Resolve Docker build context and Dockerfile path for GitHub Actions workflows that run at repo root (e.g. under [act](https://github.com/nektos/act)) when the Dockerfile lives in a subdirectory.
 
