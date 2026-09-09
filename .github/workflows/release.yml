@@ -49,6 +49,26 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
+      - name: Generate release notes
+        id: release_notes
+        uses: mikepenz/release-changelog-builder-action@cb021f9b36a51a7c6f18e4679b6fa2cb77a1260c # v6
+        with:
+          mode: "HYBRID"
+          configurationJson: |
+            {
+              "template": "#{{CHANGELOG}}\n\n---\n\n### Usage\n\n```yaml\n- uses: LiquidLogicLabs/git-action-docker-act-compatibility@${{ github.ref_name }}\n  with:\n    dockerfile: 'docker/Dockerfile'\n```",
+              "categories": [
+                  { "title": "## 🚀 Features",      "labels": [], "rules": [{ "pattern": "^feat(\\(.+\\))?!?:", "on_property": "title", "flags": "gu" }] },
+                  { "title": "## 🐛 Fixes",         "labels": [], "rules": [{ "pattern": "^fix(\\(.+\\))?!?:", "on_property": "title", "flags": "gu" }] },
+                  { "title": "## 📝 Documentation", "labels": [], "rules": [{ "pattern": "^docs(\\(.+\\))?!?:", "on_property": "title", "flags": "gu" }] },
+                  { "title": "## 🔧 CI & Build",    "labels": [], "rules": [{ "pattern": "^(ci|build)(\\(.+\\))?!?:", "on_property": "title", "flags": "gu" }] },
+                  { "title": "## 🧪 Tests",         "labels": [], "rules": [{ "pattern": "^test(\\(.+\\))?!?:", "on_property": "title", "flags": "gu" }] },
+                  { "title": "## 🧹 Maintenance",   "labels": [], "rules": [{ "pattern": "^(chore(?!\\(release\\))|refactor|style|perf|revert)(\\(.+\\))?!?:", "on_property": "title", "flags": "gu" }] }
+                ]
+            }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create GitHub Release
         # zizmor: ignore[unpinned-uses] — first-party action; no Renovate or
         # Dependabot exists in these repos, so a SHA pin would freeze it and stop
@@ -56,7 +76,7 @@ jobs:
         uses: LiquidLogicLabs/git-action-release@v2
         with:
           tag: ${{ github.event.inputs.tag || github.ref_name }}
-          body-file: CHANGELOG.md
+          body: ${{ steps.release_notes.outputs.changelog }}
           draft: 'false'
           allow-updates: 'true'
       - name: Update floating version tags
