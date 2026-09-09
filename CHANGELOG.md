@@ -1,3 +1,7 @@
+## [1.0.8](https://github.com/LiquidLogicLabs/git-action-docker-act-compatibility/compare/v1.0.7...v1.0.8) (2026-09-09)
+
+
+
 ## [1.0.7](https://github.com/LiquidLogicLabs/git-action-docker-act-compatibility/compare/v1.0.6...v1.0.7) (2026-09-08)
 
 
