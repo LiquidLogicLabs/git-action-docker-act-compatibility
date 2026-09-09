@@ -1,3 +1,12 @@
+## [1.0.9](https://github.com/LiquidLogicLabs/git-action-docker-act-compatibility/compare/v1.0.8...v1.0.9) (2026-09-09)
+
+
+### Bug Fixes
+
+* **release:** publish this release's notes, not the whole changelog ([9ee0047](https://github.com/LiquidLogicLabs/git-action-docker-act-compatibility/commit/9ee004713f57f939b19a0f32b778671d4bd50294))
+
+
+
 ## [1.0.8](https://github.com/LiquidLogicLabs/git-action-docker-act-compatibility/compare/v1.0.7...v1.0.8) (2026-09-09)
 
 
