@@ -17,7 +17,10 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # Distinct 'e2e-' prefix: release.yml now calls this workflow, and its own group is
+  # ${{ github.workflow }}-<ref>. Without the prefix both would resolve to the same
+  # group on a tag push, which CLAUDE.md records as a deadlock.
+  group: e2e-${{ github.workflow || 'E2E Tests' }}-${{ github.event.pull_request.number || github.ref || github.sha }}
   cancel-in-progress: true
 
 jobs:
