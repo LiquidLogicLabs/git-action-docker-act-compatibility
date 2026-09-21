@@ -25,3 +25,4 @@ env.txt
 log.txt
 trace.log
 .devcontainer-secrets
+_bmad-output/
